@@ -403,7 +403,14 @@ In this homework, we use the BGE-small-en-v1.5 model from Hugging Face to embed 
 ## Dataset: MS MARCO (Passage Ranking)
 We use the MS MARCO passage ranking dataset (Li et al., arXiv:1611.09268), a benchmark commonly used in semantic search and retrieval tasks. You can learn more about it from the [MS MARCO website](https://microsoft.github.io/msmarco/).
 
-We’ve processed 9650 queries and 79,176 passages from the dataset by embedding each one using the BGE encoder. 
+We’ve processed 9650 queries and 79,176 passages from the dataset by embedding each one using the BGE encoder. They are split into two smaller files `passages1.json` and `passages2.json`.
+
+To download the data:
+
+```
+chmod +x download.sh
+./download.sh
+```
 
 The queries are stored in (the first one is served as the query point in the program):
 
@@ -411,23 +418,25 @@ The queries are stored in (the first one is served as the query point in the pro
 ./data/queries_emd.json
 ```
 
-The passages are stored in:
+An example of one of the passage files is stored in:
 
 ```
-./data/passages_emd.json
+./data/passages1.json
 ```
 
 To test your program with this dataset, run:
 ```
-./knn 1 ./data/queries_emd.json ./data/passages_emd.json 2
+./main 384 ./data/queries_emd.json ./data/passages1.json 2
 ```
 
 This command runs KNN search in 384D to find the 2 nearest neighbors to the query point.
 
+We have also uploaded several simple test cases (e.g., `3d-1.json`) in `part2/data` that you can use for debugging.
+
 
 
 ## Starter Code
-You will work with the following three files in the `part2` directory:
+You will work with the following two files in the `part2` directory:
 - `main.cpp`: This is the entry point of the program, similar to the one used in part 1.
 
 - `knn.hpp`: This header file defines the types and function as well as the implementation used for the KD-tree and KNN search. In Part 2, we use a template class for `T`, which can represent either a `float` (for 1-dimensional scalar data) or an array of floats (for k-dimensional data). This design allows the same code to handle both 1D and multi-dimensional cases in a generic way. In C++, template implementations must be placed in header files (`.hpp`) because the compiler needs to see the full implementation when instantiating templates. Therefore, for this project, all implementation is provided in the `.hpp` files, and `.cpp` source files are not used in Part 2.
@@ -443,12 +452,12 @@ make all
 To run the program:
 
 ```bash
-./main <query_json> <passage_json> <K>
+./main <dim> <query_json> <passage_json> <K>
 ```
 
-- `<mode>`:  
-  - Use `0` for scalar input (`float`)  
-  - Use any other value for vector input (`std::array<float, N>`)
+- `<dim>`:  
+  - The dimensionality of the embedding.
+  - The embeddings generated using the described process have dim = 384. However, you may also create toy embeddings with smaller dimensions for debugging purposes.
 
 - `<query_json>`: Path to the JSON file containing the query point.
 
@@ -463,12 +472,12 @@ The `Embedding_T<T>` structure uses C++ template specialization to allow the K-D
 
 - For `float`: 
   - Represents a scalar (1-dimensional) embedding.
-  - `Dim = 1`.
+  - The `Dim` function always return 1.
   - The `distance` function computes the absolute difference: `|a - b|`.
 
-- For `std::array<float, N>`:
+- For `std::vector<float>`:
   - Represents a fixed-size N-dimensional vector embedding.
-  - `Dim = N`.
+  - The `Dim` function returns N, which corresponds to the dim value of the argument you provided.
   - The `distance` function computes the Euclidean distance between two vectors.
 
 ### `Node<T>`
@@ -493,16 +502,23 @@ This is a type alias for a max-heap priority queue of PQItem elements. It uses `
 You will reuse the same core logic from Part 1 (building the tree, and running KNN search), but extend the implmentation of function `buildKD` and `knnSearch` to operate over k-d embedding, either vectors in $\mathbb{R}^d$ and scalars.
 
 
-### Grading (TBD)
-Unlike Part 1, we will grade the correctness of your entire pipeline as a whole—not individual subtasks.
+### Grading
+You will be tested on four different values of k: 1, 3, 5, and 10.  There are four test cases each in k = 1, 3, and 5. The last test case of these are based on the MS MARCO passage datasets; the other datasets are located in the `./data/` directory. There are two test cases in k = 10, both based on the MS MARCO passage datasets.
 
-To evaluate your results, we use the printNeighbour() function to print out the IDs and distances of the nearest neighbors your program finds. You will be tested on four different values of k: 1, 3, 5, and 10.
+We will run your program to verify the correctness of the built tree and the output of the search. Each value of `k` total to be worth 5 points. The `buildKD` on the MS MARCO dataset 1 and 2 across all `k` are combined into the `buildKD, MS MARCO 1` and `buildKD, MS MARCO 2` tests.
 
-Each of the four test cases is worth 5 points:
-
-- Correct output for k=1 → 5 points
-- Correct output for k=3 → 5 points
-- etc.
+- Correct outputs for k=1 → 5 points
+   - 1.25 points each test case (4 test cases)
+   - Each test case split into `buildKD` and `knnSearch`
+- Correct outputs for k=3 → 5 points
+   - 1.25 points each test case (4 test cases)
+   - Each test case split into `buildKD` and `knnSearch`
+- Correct outputs for k=5 → 5 points
+   - 1.25 points each test case (4 test cases)
+   - Each test case split into `buildKD` and `knnSearch`
+- Correct outputs for k=10 → 5 points
+   - 2.5 points each test case (2 test cases)
+   - Each test case split into `buildKD` and `knnSearch`
 
 
 

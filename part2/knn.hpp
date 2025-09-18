@@ -14,7 +14,7 @@ struct Embedding_T;
 template <>
 struct Embedding_T<float>
 {
-    static constexpr size_t Dim = 1;
+    static size_t Dim() { return 1; }
 
     static float distance(const float &a, const float &b)
     {
@@ -22,17 +22,24 @@ struct Embedding_T<float>
     }
 };
 
-// fixed-size array: N-D
-template <size_t N>
-struct Embedding_T<std::array<float, N>>
-{
-    static constexpr size_t Dim = N;
 
-    static float distance(const std::array<float, N> &a,
-                          const std::array<float, N> &b)
+// dynamic vector: runtime-D (global, set once at startup)
+inline size_t& runtime_dim() {
+    static size_t d = 0;
+    return d;
+}
+
+// variable-size vector: N-D
+template <>
+struct Embedding_T<std::vector<float>>
+{
+    static size_t Dim() { return runtime_dim(); }
+    
+    static float distance(const std::vector<float> &a,
+                          const std::vector<float> &b)
     {
         float s = 0;
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < Dim(); ++i)
         {
             float d = a[i] - b[i];
             s += d * d;
