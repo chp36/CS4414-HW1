@@ -91,7 +91,35 @@ Node<T>* buildKD(std::vector<std::pair<T,int>>& items, int depth = 0)
     You should recursively construct the tree and return the root node.
     For now, this is a stub that returns nullptr.
     */
-    return nullptr;
+    if (items.empty()) return nullptr;
+
+    int d = T::Dim;
+    int axis = depth % d;
+
+    std::sort(items.begin(), items.end(), [axis, d](const auto &a, const auto &b) {
+        for (int i = 0; i < d; i++) {
+            int dimension = (axis + i) % d;
+            if (getCoordinate(a.first, dimension) < getCoordinate(b.first, dimension)) {
+                return true;
+            } else if (getCoordinate(a.first, dimension) > getCoordinate(b.first, dimension)) {
+                return false;
+            }
+        }
+        return false;
+    });
+
+    int medianIndex = items.size() / 2;
+    auto median = items[medianIndex];
+
+    Node<T> *node = new Node<T>{median.first, median.second};
+
+    std::vector<std::pair<T, int>> left(items.begin(), items.begin() + medianIndex);
+    std::vector<std::pair<T, int>> right(items.begin() + medianIndex + 1, items.end());
+
+    node->left = buildKD(left, depth + 1);
+    node->right = buildKD(right, depth + 1);
+
+    return node;
 }
 
 template <typename T>
@@ -149,5 +177,38 @@ void knnSearch(Node<T> *node,
     You should recursively traverse the tree and maintain a max-heap of the K closest points found so far.
     For now, this is a stub that does nothing.
     */
+
+    if (!node) return;
+    int d = T::Dim;
+    int axis = depth % d;
+
+    Node<T> *near_node;
+    Node<T> *far_node;
+
+    if (getCoordinate(Node<T>::queryEmbedding, axis) < getCoordinate(node->embedding, axis)) {
+        near_node = node->left;
+        far_node = node->right;
+    } else {
+        near_node = node->right;
+        far_node = node->left;
+    }
+
+    // Explore the nearest child
+    knnSearch(near_node, depth + 1, K, heap);
+
+    float dist = distance(node->embedding, Node<T>::queryEmbedding);
+    heap.push(std::make_pair(dist, node->idx));
+    if (static_cast<int>(heap.size()) > K) {
+        heap.pop();
+    }
+
+    float distance_coords = std::abs(getCoordinate(node->embedding, axis) - getCoordinate(Node<T>::queryEmbedding, axis));
+    float worst_dist = heap.top().first;
+
+    // Explore the far child
+    if (static_cast<int>(heap.size()) < K || distance_coords < worst_dist) {
+        knnSearch(far_node, depth + 1, K, heap);
+    }
+
     return;
 }
